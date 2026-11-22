@@ -1,0 +1,6 @@
+{
+  "name": "Quantum Studio",
+  "description": "Multi-agent conversational music production studio where Producer, Sound Engineer, and Lyricist collaborate with real-time DSP stem synthesis and voice-to-voice interaction.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

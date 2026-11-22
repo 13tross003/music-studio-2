@@ -1,0 +1,191 @@
+{
+  "entities": {
+    "StudioSession": {
+      "title": "StudioSession",
+      "description": "A collaborative Quantum Studio production session containing sequencer stems, DSP mix parameters, and active lyrics.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Producer UID owning this session."
+        },
+        "title": {
+          "type": "string",
+          "description": "Session track title."
+        },
+        "genreMood": {
+          "type": "string",
+          "description": "Sonic vibe and genre direction."
+        },
+        "musicalKey": {
+          "type": "string",
+          "description": "Musical key and scale."
+        },
+        "bpm": {
+          "type": "integer",
+          "description": "Tempo in beats per minute (50-220)."
+        },
+        "hpfHz": {
+          "type": "integer",
+          "description": "Surgical high-pass filter cutoff frequency in Hz (20-350)."
+        },
+        "subBoostDb": {
+          "type": "number",
+          "description": "Parametric sub-bass low-shelf boost in dB (0-12)."
+        },
+        "airPresenceDb": {
+          "type": "number",
+          "description": "High-shelf air and vocal presence EQ in dB (-6 to 9)."
+        },
+        "saturation": {
+          "type": "number",
+          "description": "Harmonic analog saturation drive (0.0-1.0)."
+        },
+        "compression": {
+          "type": "number",
+          "description": "Master bus dynamic compression amount (0.0-1.0)."
+        },
+        "swing": {
+          "type": "number",
+          "description": "Sequencer groove swing ratio (0.0-0.5)."
+        },
+        "kickPattern": {
+          "type": "array",
+          "description": "16-step kick velocity triggers (0-127)."
+        },
+        "snarePattern": {
+          "type": "array",
+          "description": "16-step snare/clap velocity triggers (0-127)."
+        },
+        "hihatPattern": {
+          "type": "array",
+          "description": "16-step hi-hat velocity triggers (0-127)."
+        },
+        "bassNotes": {
+          "type": "array",
+          "description": "16-step 808 sub-bass MIDI notes (0 = rest)."
+        },
+        "melodyNotes": {
+          "type": "array",
+          "description": "16-step synth/keys melody MIDI notes (0 = rest)."
+        },
+        "vocalGuideNotes": {
+          "type": "array",
+          "description": "16-step formant vocal guide MIDI notes (0 = rest)."
+        },
+        "activeLyrics": {
+          "type": "string",
+          "description": "Current song lyrics synchronized to the beat."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp written via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "genreMood",
+        "musicalKey",
+        "bpm",
+        "hpfHz",
+        "subBoostDb",
+        "airPresenceDb",
+        "saturation",
+        "compression",
+        "swing",
+        "kickPattern",
+        "snarePattern",
+        "hihatPattern",
+        "bassNotes",
+        "melodyNotes",
+        "vocalGuideNotes",
+        "activeLyrics",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "StudioMessage": {
+      "title": "StudioMessage",
+      "description": "A single conversational turn in the unified studio thread from Producer, Sound Engineer, or AI Lyricist.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Producer UID owning this studio thread."
+        },
+        "speaker": {
+          "type": "string",
+          "enum": ["PRODUCER", "ENGINEER", "LYRICIST"],
+          "description": "Participant speaker tag."
+        },
+        "text": {
+          "type": "string",
+          "description": "Message body."
+        },
+        "sampleReference": {
+          "type": "string",
+          "description": "Mandatory re-innovation & sample transparency callout naming original artist and track."
+        },
+        "lyricSection": {
+          "type": "string",
+          "description": "Synchronized verse or hook bars dropped by the Lyricist."
+        },
+        "mixSummary": {
+          "type": "string",
+          "description": "Sound Engineer DSP/sequencer summary."
+        },
+        "hasStemAttachment": {
+          "type": "boolean",
+          "description": "Whether this turn rendered a playable/downloadable multi-stem arrangement."
+        },
+        "stemTitle": {
+          "type": "string",
+          "description": "Title of the rendered stem pack."
+        },
+        "stemBpm": {
+          "type": "integer",
+          "description": "BPM snapshot of the rendered stem pack."
+        },
+        "stemKey": {
+          "type": "string",
+          "description": "Musical key snapshot of the rendered stem pack."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp written via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "speaker",
+        "text",
+        "hasStemAttachment",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/StudioSession" },
+      "description": "User-isolated Quantum Studio production sessions."
+    },
+    "/users/{userId}/sessions/{sessionId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/StudioMessage" },
+      "description": "Unified multi-agent conversation thread inside a studio session."
+    }
+  }
+}

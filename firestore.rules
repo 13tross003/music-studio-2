@@ -1,0 +1,149 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidStepList(arr) {
+      return arr is list && arr.size() == 16 && arr[0] is int;
+    }
+
+    function isValidStudioSession(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId.size() <= 128 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+             data.genreMood is string && data.genreMood.size() >= 1 && data.genreMood.size() <= 100 &&
+             data.musicalKey is string && data.musicalKey.size() >= 1 && data.musicalKey.size() <= 30 &&
+             data.bpm is int && data.bpm >= 50 && data.bpm <= 220 &&
+             data.hpfHz is int && data.hpfHz >= 20 && data.hpfHz <= 350 &&
+             data.subBoostDb is number && data.subBoostDb >= 0 && data.subBoostDb <= 12 &&
+             data.airPresenceDb is number && data.airPresenceDb >= -6 && data.airPresenceDb <= 9 &&
+             data.saturation is number && data.saturation >= 0 && data.saturation <= 1 &&
+             data.compression is number && data.compression >= 0 && data.compression <= 1 &&
+             data.swing is number && data.swing >= 0 && data.swing <= 0.5 &&
+             isValidStepList(data.kickPattern) &&
+             isValidStepList(data.snarePattern) &&
+             isValidStepList(data.hihatPattern) &&
+             isValidStepList(data.bassNotes) &&
+             isValidStepList(data.melodyNotes) &&
+             isValidStepList(data.vocalGuideNotes) &&
+             data.activeLyrics is string && data.activeLyrics.size() <= 6000;
+    }
+
+    function isValidStudioMessage(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId.size() <= 128 &&
+             data.speaker in ['PRODUCER', 'ENGINEER', 'LYRICIST'] &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 6000 &&
+             data.hasStemAttachment is bool &&
+             (!('sampleReference' in data) || data.sampleReference == null || (data.sampleReference is string && data.sampleReference.size() <= 300)) &&
+             (!('lyricSection' in data) || data.lyricSection == null || (data.lyricSection is string && data.lyricSection.size() <= 4000)) &&
+             (!('mixSummary' in data) || data.mixSummary == null || (data.mixSummary is string && data.mixSummary.size() <= 400)) &&
+             (!('stemTitle' in data) || data.stemTitle == null || (data.stemTitle is string && data.stemTitle.size() <= 140)) &&
+             (!('stemBpm' in data) || data.stemBpm == null || (data.stemBpm is int && data.stemBpm >= 50 && data.stemBpm <= 220)) &&
+             (!('stemKey' in data) || data.stemKey == null || (data.stemKey is string && data.stemKey.size() <= 30));
+    }
+
+    match /users/{userId}/sessions/{sessionId} {
+      allow list: if isOwner(userId);
+      allow get, delete: if isOwner(userId) && isValidId(sessionId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(sessionId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'title', 'genreMood', 'musicalKey', 'bpm',
+                         'hpfHz', 'subBoostDb', 'airPresenceDb', 'saturation', 'compression', 'swing',
+                         'kickPattern', 'snarePattern', 'hihatPattern',
+                         'bassNotes', 'melodyNotes', 'vocalGuideNotes',
+                         'activeLyrics', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'title', 'genreMood', 'musicalKey', 'bpm',
+                         'hpfHz', 'subBoostDb', 'airPresenceDb', 'saturation', 'compression', 'swing',
+                         'kickPattern', 'snarePattern', 'hihatPattern',
+                         'bassNotes', 'melodyNotes', 'vocalGuideNotes',
+                         'activeLyrics', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidStudioSession(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(sessionId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidStudioSession(incoming(), userId) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'title', 'genreMood', 'musicalKey', 'bpm',
+                         'hpfHz', 'subBoostDb', 'airPresenceDb', 'saturation', 'compression', 'swing',
+                         'kickPattern', 'snarePattern', 'hihatPattern',
+                         'bassNotes', 'melodyNotes', 'vocalGuideNotes',
+                         'activeLyrics', 'updatedAt'
+                       ]);
+
+      match /messages/{messageId} {
+        allow list: if isOwner(userId);
+        allow get, delete: if isOwner(userId) && isValidId(sessionId) && isValidId(messageId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(sessionId) &&
+                         isValidId(messageId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'speaker', 'text', 'hasStemAttachment', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'speaker', 'text', 'sampleReference', 'lyricSection',
+                           'mixSummary', 'hasStemAttachment', 'stemTitle', 'stemBpm', 'stemKey',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp &&
+                         incoming().updatedAt <= request.time &&
+                         isValidStudioMessage(incoming(), userId) &&
+                         exists(/databases/$(database)/documents/users/$(userId)/sessions/$(sessionId));
+
+        allow update: if isOwner(userId) &&
+                         isValidId(sessionId) &&
+                         isValidId(messageId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp &&
+                         incoming().updatedAt <= request.time &&
+                         isValidStudioMessage(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'text', 'sampleReference', 'lyricSection',
+                           'mixSummary', 'hasStemAttachment', 'stemTitle', 'stemBpm', 'stemKey',
+                           'updatedAt'
+                         ]);
+      }
+    }
+  }
+}
